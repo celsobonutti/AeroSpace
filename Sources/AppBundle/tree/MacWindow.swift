@@ -221,6 +221,16 @@ private func unbindAndGetBindingDataForNewWindow(_ windowId: UInt32, _ macApp: M
 @MainActor
 private func unbindAndGetBindingDataForNewTilingWindow(_ workspace: Workspace, window: Window?) -> BindingData {
     window?.unbindFromParent() // It's important to unbind to get correct data from below
+    if workspace.layoutMode == .tall {
+        let root = workspace.rootTilingContainer
+        if let stack = root.children.filterIsInstance(of: TilingContainer.self).first {
+            // Insert at the top of the existing stack column.
+            return BindingData(parent: stack, adaptiveWeight: WEIGHT_AUTO, index: 0)
+        } else {
+            // 0 or 1 window so far: bind just after the master slot; the reflow canonicalizes.
+            return BindingData(parent: root, adaptiveWeight: WEIGHT_AUTO, index: min(1, root.children.count))
+        }
+    }
     let mruWindow = workspace.mostRecentWindowRecursive
     if let mruWindow, let tilingParent = mruWindow.parent as? TilingContainer {
         return BindingData(
