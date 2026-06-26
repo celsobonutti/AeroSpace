@@ -45,6 +45,13 @@ extension TilingContainer {
         }
     }
 
+    /// Sets orientation directly without the opposite-orientation cascade that `changeOrientation` applies.
+    /// Used by the tall reflow, which controls the whole tree shape explicitly.
+    @MainActor
+    func setOrientationForTall(_ targetOrientation: Orientation) {
+        _orientation = targetOrientation
+    }
+
     func normalizeOppositeOrientationForNestedContainers() {
         if orientation == (parent as? TilingContainer)?.orientation {
             _orientation = orientation.opposite

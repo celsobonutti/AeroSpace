@@ -35,6 +35,10 @@ final class Workspace: TreeNode, NonLeafTreeNodeObject, Hashable, Comparable {
     nonisolated private let nameLogicalSegments: StringLogicalSegments
     /// `assignedMonitorPoint` must be interpreted only when the workspace is invisible
     fileprivate var assignedMonitorPoint: CGPoint? = nil
+    /// Workspace-level layout mode. `.tall` enables the dynamic master-stack layout.
+    var layoutMode: WorkspaceLayout = .tiling
+    /// The pinned master window when `layoutMode == .tall`. Tracked by identity; resolved/repaired by `normalizeTallWorkspace`.
+    weak var masterWindow: Window?
 
     @MainActor
     private init(_ name: String) {
