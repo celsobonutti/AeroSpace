@@ -1,5 +1,9 @@
 extension Workspace {
     @MainActor func normalizeContainers() {
+        if layoutMode == .tall {
+            normalizeTallWorkspace()
+            return
+        }
         rootTilingContainer.unbindEmptyAndAutoFlatten() // Beware! rootTilingContainer may change after this line of code
         if config.enableNormalizationOppositeOrientationForNestedContainers {
             rootTilingContainer.normalizeOppositeOrientationForNestedContainers()

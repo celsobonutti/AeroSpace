@@ -99,4 +99,20 @@ final class NormalizeTallWorkspaceTest: XCTestCase {
         let ratio = master.getWeight(.h) / (master.getWeight(.h) + stack.getWeight(.h))
         assertEquals((ratio * 100).rounded(), 70)
     }
+
+    func testNormalizeContainers_dispatchesToTall() {
+        let workspace = Workspace.get(byName: name)
+        workspace.layoutMode = .tall
+        let root = workspace.rootTilingContainer.apply {
+            TestWindow.new(id: 1, parent: $0)
+            TestWindow.new(id: 2, parent: $0)
+            TestWindow.new(id: 3, parent: $0)
+        }
+        // Generic normalize entry point should produce the canonical tall tree.
+        workspace.normalizeContainers()
+        assertEquals(root.layoutDescription, .h_tiles([
+            .window(1),
+            .v_tiles([.window(2), .window(3)]),
+        ]))
+    }
 }
