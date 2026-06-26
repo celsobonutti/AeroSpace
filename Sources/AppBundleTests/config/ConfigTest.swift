@@ -685,6 +685,27 @@ final class ConfigTest: XCTestCase {
         assertFalse(result.allowReloadConfig)
     }
 
+    func testParseDefaultWorkspaceLayout() {
+        let result = parseConfig(
+            """
+            default-workspace-layout = 'tall'
+            tall-master-ratio = 65
+            """,
+        )
+        assertEquals(result.errors, [])
+        assertEquals(result.config.defaultWorkspaceLayout, .tall)
+        assertEquals(result.config.tallMasterRatioPercent, 65)
+    }
+
+    func testTallMasterRatioOutOfRange() {
+        let errors = parseConfig(
+            """
+            tall-master-ratio = 0
+            """,
+        ).strErrors
+        assertEquals(errors, ["[ERROR] tall-master-ratio: tall-master-ratio must be an integer percentage in [1, 99]"])
+    }
+
     func testParseKeyMapping() {
         let result = parseConfig(
             """

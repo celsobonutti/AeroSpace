@@ -56,6 +56,7 @@ final class Workspace: TreeNode, NonLeafTreeNodeObject, Hashable, Comparable {
             return existing
         } else {
             let workspace = Workspace(name)
+            workspace.layoutMode = config.defaultWorkspaceLayout
             workspaceNameToWorkspace[name] = workspace
             return workspace
         }

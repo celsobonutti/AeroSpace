@@ -100,6 +100,12 @@ final class NormalizeTallWorkspaceTest: XCTestCase {
         assertEquals((ratio * 100).rounded(), 70)
     }
 
+    func testNewWorkspaceSeedsLayoutModeFromConfig() {
+        config.defaultWorkspaceLayout = .tall
+        let workspace = Workspace.get(byName: "freshly-created-tall-ws")
+        assertEquals(workspace.layoutMode, .tall)
+    }
+
     func testNormalizeContainers_dispatchesToTall() {
         let workspace = Workspace.get(byName: name)
         workspace.layoutMode = .tall

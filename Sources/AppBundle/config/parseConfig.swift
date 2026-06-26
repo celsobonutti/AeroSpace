@@ -141,6 +141,8 @@ private let configParser: [String: any ParserProtocol<Config>] = [
 
     "default-root-container-layout": Parser(\.defaultRootContainerLayout, parseLayout),
     "default-root-container-orientation": Parser(\.defaultRootContainerOrientation, parseDefaultContainerOrientation),
+    "default-workspace-layout": Parser(\.defaultWorkspaceLayout, parseWorkspaceLayout),
+    "tall-master-ratio": Parser(\.tallMasterRatioPercent, parseTallMasterRatioPercent),
 
     "start-at-login": Parser(\.startAtLogin, parseBool),
     "auto-reload-config": Parser(\.autoReloadConfig, parseBool),
@@ -415,6 +417,21 @@ private func parseDefaultContainerOrientation(_ raw: OrderedJson, _ backtrace: C
     parseString(raw, backtrace).flatMap {
         DefaultContainerOrientation(rawValue: $0)
             .toResult(.init(backtrace, "Can't parse default container orientation '\($0)'"))
+    }
+}
+
+private func parseWorkspaceLayout(_ raw: OrderedJson, _ backtrace: ConfigBacktrace) -> ResOrConfigParseDiagnostic<WorkspaceLayout> {
+    parseString(raw, backtrace).flatMap {
+        WorkspaceLayout(rawValue: $0)
+            .toResult(.init(backtrace, "Can't parse workspace layout '\($0)'. Possible values: tiling, tall"))
+    }
+}
+
+private func parseTallMasterRatioPercent(_ raw: OrderedJson, _ backtrace: ConfigBacktrace) -> ResOrConfigParseDiagnostic<Int> {
+    parseInt(raw, backtrace).flatMap {
+        (1 ... 99).contains($0)
+            ? .success($0)
+            : .failure(.init(backtrace, "tall-master-ratio must be an integer percentage in [1, 99]"))
     }
 }
 
