@@ -1,0 +1,39 @@
+= aerospace-promote(1)
+include::util/man-attributes.adoc[]
+:manname: aerospace-promote
+// tag::purpose[]
+:manpurpose: Promote the focused window to the master slot of a tall workspace.
+// end::purpose[]
+
+// =========================================================== Synopsis
+== Synopsis
+[verse]
+// tag::synopsis[]
+aerospace promote [-h|--help] [--window-id <window-id>] [--fail-if-noop]
+// end::synopsis[]
+
+// =========================================================== Description
+== Description
+
+// tag::body[]
+{manpurpose}
+
+Swaps the focused window into the master slot of a `tall` workspace.
+The previous master is demoted into the focused window's former stack position.
+This command is a no-op in non-`tall` workspaces and when the focused window is already the master.
+
+// =========================================================== Options
+include::util/conditional-options-header.adoc[]
+
+-h, --help:: Print help
+
+--window-id <window-id>::
+include::./util/window-id-flag-desc.adoc[]
+
+--fail-if-noop::
+Return exit code 2 if the command is a no-op (focused window is already the master or workspace is not `tall`).
+
+// end::body[]
+
+// =========================================================== Footer
+include::util/man-footer.adoc[]
