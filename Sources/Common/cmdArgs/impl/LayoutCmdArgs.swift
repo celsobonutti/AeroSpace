@@ -28,6 +28,7 @@ public struct LayoutCmdArgs: CmdArgs {
         case horizontal, vertical
         case h_accordion, v_accordion, h_tiles, v_tiles
         case tiling, floating
+        case tall
     }
 
     public var root: Bool = false
@@ -68,7 +69,7 @@ func parseLayoutCmdArgs(_ args: StrArrSlice) -> ParsedCmd<LayoutCmdArgs> {
                     case .floating, .tiling: false
                     case .accordion, .h_accordion, .h_tiles,
                          .horizontal, .tiles, .v_accordion, .v_tiles,
-                         .vertical: true
+                         .vertical, .tall: true
                 }
             }
         }

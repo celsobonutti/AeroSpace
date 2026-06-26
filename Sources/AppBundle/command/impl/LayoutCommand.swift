@@ -29,9 +29,10 @@ struct LayoutCommand: Command {
                 node = .tilingContainer(target.workspace.rootTilingContainer)
         }
 
-        let targetDescription = args.toggleBetween.val.first(where: { !node.matchesDescription($0) })
+        let workspaceLayout = target.workspace.layoutMode
+        let targetDescription = args.toggleBetween.val.first(where: { !node.matchesDescription($0, workspaceLayout: workspaceLayout) })
             ?? args.toggleBetween.val.first.orDie()
-        if node.matchesDescription(targetDescription) {
+        if node.matchesDescription(targetDescription, workspaceLayout: workspaceLayout) {
             switch args.failIfNoop {
                 case true: return .fail
                 case false:
@@ -40,7 +41,24 @@ struct LayoutCommand: Command {
                     return .succ(io.err(msg))
             }
         }
+
+        // `tall` is a workspace-level mode; all other descriptions imply leaving it.
+        if targetDescription == .tall {
+            let workspace = target.workspace
+            workspace.layoutMode = .tall
+            workspace.masterWindow = target.windowOrNil
+                ?? workspace.masterWindow
+                ?? workspace.rootTilingContainer.allLeafWindowsRecursive.first
+            workspace.normalizeTallWorkspace()
+            return .succ
+        }
+        if target.workspace.layoutMode == .tall {
+            target.workspace.layoutMode = .tiling
+        }
+
         switch targetDescription {
+            case .tall:
+                return .fail(io.err(bugPrompt())) // handled above
             case .h_accordion:
                 return changeTilingLayout(io, targetLayout: .accordion, targetOrientation: .h, node: node)
             case .v_accordion:
@@ -101,8 +119,12 @@ struct LayoutCommand: Command {
 }
 
 extension ConventionalWindowParentCases {
-    fileprivate func matchesDescription(_ layout: LayoutCmdArgs.LayoutDescription) -> Bool {
+    fileprivate func matchesDescription(_ layout: LayoutCmdArgs.LayoutDescription, workspaceLayout: WorkspaceLayout) -> Bool {
+        if workspaceLayout == .tall {
+            return layout == .tall
+        }
         return switch layout {
+            case .tall:        false
             case .accordion:   tilingContainerOrNil?.layout == .accordion
             case .tiles:       tilingContainerOrNil?.layout == .tiles
             case .horizontal:  tilingContainerOrNil?.orientation == .h

@@ -347,4 +347,45 @@ final class LayoutCommandTest: XCTestCase {
         assertEquals(result.exitCode.rawValue, 0)
         assertEquals(root.layoutDescription, .h_tiles([.window(1), .window(2)]))
     }
+
+    func testEnterTall_buildsMasterStack() async {
+        let workspace = Workspace.get(byName: name)
+        let root = workspace.rootTilingContainer.apply {
+            assertEquals(TestWindow.new(id: 1, parent: $0).focusWindow(), true)
+            TestWindow.new(id: 2, parent: $0)
+            TestWindow.new(id: 3, parent: $0)
+        }
+        await parseCommand("layout tall").cmdOrDie.run(.defaultEnv, .emptyStdin)
+        assertEquals(workspace.layoutMode, .tall)
+        assertEquals(workspace.masterWindow?.windowId, 1)
+        assertEquals(root.layoutDescription, .h_tiles([
+            .window(1),
+            .v_tiles([.window(2), .window(3)]),
+        ]))
+    }
+
+    func testToggleTallAndTiles() async {
+        let workspace = Workspace.get(byName: name)
+        workspace.rootTilingContainer.apply {
+            assertEquals(TestWindow.new(id: 1, parent: $0).focusWindow(), true)
+            TestWindow.new(id: 2, parent: $0)
+        }
+        // tiling -> tall
+        await parseCommand("layout tall tiles").cmdOrDie.run(.defaultEnv, .emptyStdin)
+        assertEquals(workspace.layoutMode, .tall)
+        // tall -> tiling
+        await parseCommand("layout tall tiles").cmdOrDie.run(.defaultEnv, .emptyStdin)
+        assertEquals(workspace.layoutMode, .tiling)
+    }
+
+    func testEnterTall_alreadyTall_isNoop() async {
+        let workspace = Workspace.get(byName: name)
+        workspace.rootTilingContainer.apply {
+            assertEquals(TestWindow.new(id: 1, parent: $0).focusWindow(), true)
+        }
+        await parseCommand("layout tall").cmdOrDie.run(.defaultEnv, .emptyStdin)
+        let result = await parseCommand("layout tall --fail-if-noop").cmdOrDie.run(.defaultEnv, .emptyStdin)
+        assertEquals(result.exitCode.rawValue, 2)
+        assertEquals(workspace.layoutMode, .tall)
+    }
 }
