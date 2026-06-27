@@ -22,9 +22,19 @@ struct PromoteCommand: Command {
             }
         }
 
+        // The promoted window takes over the master slot, so recenter the mouse there.
+        // Capture the master slot's rect before the swap: the new layout isn't applied
+        // yet, so the promoted window's own `lastAppliedLayoutPhysicalRect` is still its
+        // old stack position. The outgoing master's rect IS the master slot.
+        let masterSlotRect = master.lastAppliedLayoutPhysicalRect
+
         swapWindows(mruDominant: window, master)
         workspace.masterWindow = window
         workspace.normalizeTallWorkspace()
+
+        if let masterSlotRect {
+            postMouseMove(to: masterSlotRect.center)
+        }
         return .succ
     }
 }

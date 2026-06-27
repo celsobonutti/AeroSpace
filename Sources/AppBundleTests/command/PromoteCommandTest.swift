@@ -27,6 +27,26 @@ final class PromoteCommandTest: XCTestCase {
         ]))
     }
 
+    func testPromoteRecentersMouseOnMasterSlot() async {
+        let workspace = Workspace.get(byName: name)
+        workspace.rootTilingContainer.apply {
+            assertEquals(TestWindow.new(id: 1, parent: $0).focusWindow(), true)
+            TestWindow.new(id: 2, parent: $0)
+            TestWindow.new(id: 3, parent: $0)
+        }
+        await parseCommand("layout tall").cmdOrDie.run(.defaultEnv, .emptyStdin)
+        // Tests don't run real layout, so seed the master slot's on-screen rect.
+        let masterRect = Rect(topLeftX: 0, topLeftY: 0, width: 100, height: 200)
+        workspace.masterWindow?.lastAppliedLayoutPhysicalRect = masterRect
+        lastRequestedMouseMoveForTests = nil
+
+        // Promote a stack window: the mouse should recenter on the master slot.
+        assertEquals(workspace.allLeafWindowsRecursive.first { $0.windowId == 3 }?.focusWindow(), true)
+        await parseCommand("promote").cmdOrDie.run(.defaultEnv, .emptyStdin)
+
+        assertEquals(lastRequestedMouseMoveForTests, masterRect.center)
+    }
+
     func testPromoteMaster_isNoop() async {
         let workspace = Workspace.get(byName: name)
         workspace.rootTilingContainer.apply {

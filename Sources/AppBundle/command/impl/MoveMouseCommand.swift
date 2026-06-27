@@ -38,19 +38,9 @@ struct MoveMouseCommand: Command {
     }
 }
 
+@MainActor
 private func moveMouse(_ io: CmdIo, _ point: CGPoint) -> BinaryExitCode {
-    let event = CGEvent(
-        mouseEventSource: nil,
-        mouseType: CGEventType.mouseMoved,
-        mouseCursorPosition: point,
-        mouseButton: CGMouseButton.left,
-    )
-    switch event {
-        case nil: return .fail(io.err("Failed to move mouse"))
-        case let event?:
-            event.post(tap: CGEventTapLocation.cghidEventTap)
-            return .succ
-    }
+    postMouseMove(to: point) ? .succ : .fail(io.err("Failed to move mouse"))
 }
 
 @MainActor
