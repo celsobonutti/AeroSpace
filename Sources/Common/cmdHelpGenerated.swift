@@ -157,7 +157,7 @@ let summon_workspace_help_generated = """
     """
 let swap_help_generated = """
     USAGE: swap [-h|--help] [--window-id <window-id>] [--swap-focus]
-                [--wrap-around] (left|down|up|right|dfs-next|dfs-prev)
+                [--wrap-around] [--move-mouse] (left|down|up|right|dfs-next|dfs-prev)
     """
 let test_not_help_generated = """
     USAGE: test-not [-h|--help] <lhs> = <rhs>

@@ -10,7 +10,7 @@ include::util/man-attributes.adoc[]
 [verse]
 // tag::synopsis[]
 aerospace swap [-h|--help] [--window-id <window-id>] [--swap-focus]
-               [--wrap-around] (left|down|up|right|dfs-next|dfs-prev)
+               [--wrap-around] [--move-mouse] (left|down|up|right|dfs-next|dfs-prev)
 
 // end::synopsis[]
 
@@ -36,6 +36,10 @@ By default, this command does not change the focused window.
 
 --wrap-around::
 Wrap around if the window is at the edge of the workspace (for `(left|down|up|right)`) or the start/end of the depth first order (for `(dfs-next|dfs-prev)`).
+
+--move-mouse::
+Move the mouse to the center of the focused window's new position after the swap.
+Unlike chaining a separate `move-mouse` command, this accounts for the post-swap layout.
 
 // =========================================================== Arguments
 include::./util/conditional-arguments-header.adoc[]

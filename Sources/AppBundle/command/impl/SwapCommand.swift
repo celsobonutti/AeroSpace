@@ -47,7 +47,20 @@ struct SwapCommand: Command {
             return .fail
         }
 
+        // Capture rects before the swap: the new layout isn't applied until the session
+        // ends, so each window's lastAppliedLayoutPhysicalRect still holds its old slot.
+        // After the swap, the focused window occupies the OTHER window's old slot.
+        let currentRect = currentWindow.lastAppliedLayoutPhysicalRect
+        let targetRect = targetWindow.lastAppliedLayoutPhysicalRect
+
         swapWindows(mruDominant: currentWindow, targetWindow)
+
+        if args.moveMouse {
+            let focusedNewRect = args.swapFocus ? currentRect : targetRect
+            if let focusedNewRect {
+                postMouseMove(to: focusedNewRect.center)
+            }
+        }
 
         if args.swapFocus {
             return .from(bool: targetWindow.focusWindow())

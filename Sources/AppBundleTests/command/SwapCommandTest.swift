@@ -118,6 +118,63 @@ final class SwapCommandTest: XCTestCase {
         assertEquals(root.mostRecentWindowRecursive?.windowId, 1)
     }
 
+    func testSwap_moveMouse_followsSwappedWindow() async {
+        let root = Workspace.get(byName: name).rootTilingContainer.apply {
+            assertEquals(TestWindow.new(id: 1, parent: $0).focusWindow(), true)
+            TestWindow.new(id: 2, parent: $0)
+        }
+        let w1 = root.allLeafWindowsRecursive.first { $0.windowId == 1 }.orDie()
+        let w2 = root.allLeafWindowsRecursive.first { $0.windowId == 2 }.orDie()
+        // Tests don't run real layout, so seed the on-screen rects.
+        w1.lastAppliedLayoutPhysicalRect = Rect(topLeftX: 0, topLeftY: 0, width: 100, height: 100)
+        let w2Rect = Rect(topLeftX: 100, topLeftY: 0, width: 100, height: 100)
+        w2.lastAppliedLayoutPhysicalRect = w2Rect
+        lastRequestedMouseMoveForTests = nil
+
+        await parseCommand("swap dfs-next --move-mouse").cmdOrDie.run(.defaultEnv, .emptyStdin)
+
+        // Focus stays on window 1 (no --swap-focus); it now sits in window 2's old slot,
+        // so the cursor should recenter there.
+        assertEquals(focus.windowOrNil?.windowId, 1)
+        assertEquals(lastRequestedMouseMoveForTests, w2Rect.center)
+    }
+
+    func testSwap_withoutMoveMouseFlag_doesNotMoveMouse() async {
+        let root = Workspace.get(byName: name).rootTilingContainer.apply {
+            assertEquals(TestWindow.new(id: 1, parent: $0).focusWindow(), true)
+            TestWindow.new(id: 2, parent: $0)
+        }
+        root.allLeafWindowsRecursive.first { $0.windowId == 1 }?.lastAppliedLayoutPhysicalRect =
+            Rect(topLeftX: 0, topLeftY: 0, width: 100, height: 100)
+        root.allLeafWindowsRecursive.first { $0.windowId == 2 }?.lastAppliedLayoutPhysicalRect =
+            Rect(topLeftX: 100, topLeftY: 0, width: 100, height: 100)
+        lastRequestedMouseMoveForTests = nil
+
+        await parseCommand("swap dfs-next").cmdOrDie.run(.defaultEnv, .emptyStdin)
+
+        assertEquals(lastRequestedMouseMoveForTests, nil)
+    }
+
+    func testSwap_moveMouse_withSwapFocus_followsFocus() async {
+        let root = Workspace.get(byName: name).rootTilingContainer.apply {
+            TestWindow.new(id: 1, parent: $0)
+            assertEquals(TestWindow.new(id: 2, parent: $0).focusWindow(), true)
+        }
+        let w1 = root.allLeafWindowsRecursive.first { $0.windowId == 1 }.orDie()
+        let w2 = root.allLeafWindowsRecursive.first { $0.windowId == 2 }.orDie()
+        w1.lastAppliedLayoutPhysicalRect = Rect(topLeftX: 0, topLeftY: 0, width: 100, height: 100)
+        let w2Rect = Rect(topLeftX: 100, topLeftY: 0, width: 100, height: 100)
+        w2.lastAppliedLayoutPhysicalRect = w2Rect
+        lastRequestedMouseMoveForTests = nil
+
+        // Focused window 2 swaps with previous window 1; --swap-focus moves focus to window 1,
+        // which now occupies window 2's old slot, so the cursor recenters there.
+        await parseCommand("swap dfs-prev --swap-focus --move-mouse").cmdOrDie.run(.defaultEnv, .emptyStdin)
+
+        assertEquals(focus.windowOrNil?.windowId, 1)
+        assertEquals(lastRequestedMouseMoveForTests, w2Rect.center)
+    }
+
     func testSwap_SwapFocus() async {
         let root = Workspace.get(byName: name).rootTilingContainer.apply {
             TestWindow.new(id: 1, parent: $0)
