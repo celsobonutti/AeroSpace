@@ -175,6 +175,75 @@ final class SwapCommandTest: XCTestCase {
         assertEquals(lastRequestedMouseMoveForTests, w2Rect.center)
     }
 
+    func testSwap_masterInTall_isCleanNoop() async {
+        let workspace = Workspace.get(byName: name)
+        workspace.rootTilingContainer.apply {
+            assertEquals(TestWindow.new(id: 1, parent: $0).focusWindow(), true)
+            TestWindow.new(id: 2, parent: $0)
+            TestWindow.new(id: 3, parent: $0)
+        }
+        await parseCommand("layout tall").cmdOrDie.run(.defaultEnv, .emptyStdin)
+        for id: UInt32 in [1, 2, 3] {
+            workspace.allLeafWindowsRecursive.first { $0.windowId == id }?.lastAppliedLayoutPhysicalRect =
+                Rect(topLeftX: CGFloat(id) * 100, topLeftY: 0, width: 100, height: 100)
+        }
+        lastRequestedMouseMoveForTests = nil
+
+        // Master (1) is focused. dfs-next targets the stack top (2): a master-involved (boundary) swap.
+        // The pinned-master reflow would revert it, so it must be a clean no-op — no mouse move, no focus change.
+        await parseCommand("swap dfs-next --wrap-around --move-mouse").cmdOrDie.run(.defaultEnv, .emptyStdin)
+
+        assertEquals(workspace.rootTilingContainer.layoutDescription,
+                     .h_tiles([.window(1), .v_tiles([.window(2), .window(3)])]))
+        assertEquals(lastRequestedMouseMoveForTests, nil)
+        assertEquals(focus.windowOrNil?.windowId, 1)
+    }
+
+    func testSwap_stackTopToMasterInTall_isCleanNoop() async {
+        let workspace = Workspace.get(byName: name)
+        workspace.rootTilingContainer.apply {
+            assertEquals(TestWindow.new(id: 1, parent: $0).focusWindow(), true)
+            TestWindow.new(id: 2, parent: $0)
+            TestWindow.new(id: 3, parent: $0)
+        }
+        await parseCommand("layout tall").cmdOrDie.run(.defaultEnv, .emptyStdin)
+        for id: UInt32 in [1, 2, 3] {
+            workspace.allLeafWindowsRecursive.first { $0.windowId == id }?.lastAppliedLayoutPhysicalRect =
+                Rect(topLeftX: CGFloat(id) * 100, topLeftY: 0, width: 100, height: 100)
+        }
+        // Focus the stack top (2); dfs-prev targets the master (1): also a boundary swap → no-op.
+        assertEquals(workspace.allLeafWindowsRecursive.first { $0.windowId == 2 }?.focusWindow(), true)
+        lastRequestedMouseMoveForTests = nil
+
+        await parseCommand("swap dfs-prev --wrap-around --move-mouse").cmdOrDie.run(.defaultEnv, .emptyStdin)
+
+        assertEquals(workspace.rootTilingContainer.layoutDescription,
+                     .h_tiles([.window(1), .v_tiles([.window(2), .window(3)])]))
+        assertEquals(lastRequestedMouseMoveForTests, nil)
+        assertEquals(focus.windowOrNil?.windowId, 2)
+    }
+
+    func testSwap_betweenStackWindowsInTall_stillWorks() async {
+        let workspace = Workspace.get(byName: name)
+        workspace.rootTilingContainer.apply {
+            TestWindow.new(id: 1, parent: $0)
+            assertEquals(TestWindow.new(id: 2, parent: $0).focusWindow(), true)
+            TestWindow.new(id: 3, parent: $0)
+        }
+        await parseCommand("layout tall").cmdOrDie.run(.defaultEnv, .emptyStdin)
+        // master = 2 (it was focused on entry). stack = [1, 3]. Focus the stack top.
+        assertEquals(workspace.masterWindow?.windowId, 2)
+        let stackTop = (workspace.rootTilingContainer.children[1] as! TilingContainer).children.first as? Window
+        assertEquals(stackTop?.focusWindow(), true)
+
+        // Swapping two stack windows is NOT a boundary swap; it must still reorder the stack.
+        await parseCommand("swap dfs-next --wrap-around").cmdOrDie.run(.defaultEnv, .emptyStdin)
+        let stackIds = (workspace.rootTilingContainer.children[1] as! TilingContainer)
+            .children.compactMap { ($0 as? Window)?.windowId }
+        assertEquals(stackIds, [3, 1])
+        assertEquals(workspace.masterWindow?.windowId, 2)
+    }
+
     func testSwap_SwapFocus() async {
         let root = Workspace.get(byName: name).rootTilingContainer.apply {
             TestWindow.new(id: 1, parent: $0)

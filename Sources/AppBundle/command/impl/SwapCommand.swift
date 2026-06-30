@@ -47,6 +47,16 @@ struct SwapCommand: Command {
             return .fail
         }
 
+        // In a `tall` workspace the master is pinned, so swapping it with a stack window
+        // is immediately reverted by the reflow. Make such a boundary swap an honest no-op:
+        // no swap, no focus change, no mouse move (otherwise --move-mouse would jump the
+        // cursor to a slot the window never actually moved to).
+        if let workspace = currentWindow.nodeWorkspace, workspace.layoutMode == .tall,
+           let master = workspace.masterWindow, currentWindow === master || targetWindow === master
+        {
+            return .succ
+        }
+
         // Capture rects before the swap: the new layout isn't applied until the session
         // ends, so each window's lastAppliedLayoutPhysicalRect still holds its old slot.
         // After the swap, the focused window occupies the OTHER window's old slot.
