@@ -6,6 +6,38 @@ import XCTest
 final class NormalizeTallWorkspaceTest: XCTestCase {
     override func setUp() async throws { setUpWorkspacesForTests() }
 
+    func testReflow_preservesMostRecentWindow() async {
+        let workspace = Workspace.get(byName: name)
+        workspace.rootTilingContainer.apply {
+            assertEquals(TestWindow.new(id: 1, parent: $0).focusWindow(), true)
+            TestWindow.new(id: 2, parent: $0)
+            TestWindow.new(id: 3, parent: $0)
+        }
+        await parseCommand("layout tall").cmdOrDie.run(.defaultEnv, .emptyStdin)
+        // Focus a stack window so it is the most-recent window.
+        assertEquals(workspace.allLeafWindowsRecursive.first { $0.windowId == 2 }?.focusWindow(), true)
+        assertEquals(workspace.mostRecentWindowRecursive?.windowId, 2)
+
+        // A reflow must NOT clobber the MRU back to the last-bound stack window.
+        workspace.normalizeContainers()
+        assertEquals(workspace.mostRecentWindowRecursive?.windowId, 2)
+    }
+
+    func testReflow_focusWorkspaceRestoresMruWindow() async {
+        let workspace = Workspace.get(byName: name)
+        workspace.rootTilingContainer.apply {
+            assertEquals(TestWindow.new(id: 1, parent: $0).focusWindow(), true)
+            TestWindow.new(id: 2, parent: $0)
+            TestWindow.new(id: 3, parent: $0)
+        }
+        await parseCommand("layout tall").cmdOrDie.run(.defaultEnv, .emptyStdin)
+        assertEquals(workspace.allLeafWindowsRecursive.first { $0.windowId == 2 }?.focusWindow(), true)
+        workspace.normalizeContainers()
+
+        // Returning to the workspace (focus-monitor) restores the last-focused window, not the stack bottom.
+        assertEquals(workspace.toLiveFocus().windowOrNil?.windowId, 2)
+    }
+
     func testTwoWindows_buildsMasterPlusStack() {
         let workspace = Workspace.get(byName: name)
         workspace.layoutMode = .tall

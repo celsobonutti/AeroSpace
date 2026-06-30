@@ -20,6 +20,11 @@ extension Workspace {
         guard let master else { return } // Empty workspace: leave root empty.
         let stackWindows = windows.filter { $0 !== master }
 
+        // Capture the most-recent window before teardown. Rebinding every window below
+        // makes the last-bound one "most recent", which would clobber the real MRU and
+        // make focus restoration (e.g. focus-monitor) land on the wrong window.
+        let mruWindow = root.mostRecentWindowRecursive
+
         // Capture (or seed) the master/stack split ratio before tearing down.
         let canonical = root.children.count == 2
             && root.children[0] is Window
@@ -54,5 +59,8 @@ extension Workspace {
                 window.bind(to: stack, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
             }
         }
+
+        // Restore the most-recent window clobbered by the rebinding above.
+        mruWindow?.markAsMostRecentChild()
     }
 }
